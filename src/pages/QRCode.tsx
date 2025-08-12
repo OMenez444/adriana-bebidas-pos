@@ -6,13 +6,16 @@ import { useComandasStore } from '@/state/comandas';
 import { Download, Share2, Smartphone, Globe, Wifi } from 'lucide-react';
 import { useState } from 'react';
 import { useQRCode } from '@/hooks/useQRCode';
-import { getQRCodeUrl, isPublicEnvironment } from '@/config/environment';
+import { getQRCodeUrl, isPublicEnvironment, getEnvironmentInfo } from '@/config/environment';
 
 export default function QRCode() {
   const mesasCount = useSettingsStore((s) => s.settings.mesasCount);
   const lojaNome = useSettingsStore((s) => s.settings.lojaNome);
   const comandas = useComandasStore((s) => s.comandas);
   const [selectedMesa, setSelectedMesa] = useState<number | null>(null);
+
+  // Debug: Mostrar informações do ambiente
+  const envInfo = getEnvironmentInfo();
 
   const getMesaStatus = (mesaNumero: number) => {
     const comanda = comandas.find(
@@ -24,7 +27,9 @@ export default function QRCode() {
 
   // Usar a função de ambiente para gerar URL do QR Code
   const generateQRCodeUrl = (mesaNumero: number) => {
-    return getQRCodeUrl(mesaNumero);
+    const url = getQRCodeUrl(mesaNumero);
+    console.log(`QR Code Mesa ${mesaNumero}:`, url); // Debug
+    return url;
   };
 
   const downloadQRCode = (mesaNumero: number) => {
@@ -85,6 +90,16 @@ export default function QRCode() {
               </>
             )}
           </div>
+
+          {/* Debug: Informações do ambiente */}
+          <div className="mt-4 p-3 bg-gray-100 rounded-lg text-left text-xs">
+            <p><strong>Hostname:</strong> {envInfo.hostname}</p>
+            <p><strong>Protocol:</strong> {envInfo.protocol}</p>
+            <p><strong>Port:</strong> {envInfo.port}</p>
+            <p><strong>Environment:</strong> {envInfo.environment}</p>
+            <p><strong>QR Base URL:</strong> {envInfo.qrCodeBaseUrl}</p>
+            <p><strong>Is Public:</strong> {envInfo.isPublic ? 'Sim' : 'Não'}</p>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -98,84 +113,79 @@ export default function QRCode() {
               <Card key={mesaNumero} className="relative">
                 <CardHeader className="text-center pb-3">
                   <CardTitle className="text-lg">Mesa {mesaNumero}</CardTitle>
-                  <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium ${
-                    status === 'OCUPADA' 
-                      ? 'bg-yellow-100 text-yellow-800' 
-                      : 'bg-green-100 text-green-800'
-                  }`}>
-                    <div className={`w-2 h-2 rounded-full ${
-                      status === 'OCUPADA' ? 'bg-yellow-500' : 'bg-green-500'
-                    }`} />
-                    {status === 'OCUPADA' ? 'Ocupada' : 'Livre'}
+                  <div className="flex items-center justify-center gap-2">
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      status === 'LIVRE' 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-red-100 text-red-800'
+                    }`}>
+                      {status}
+                    </span>
                   </div>
                 </CardHeader>
                 
-                <CardContent className="space-y-4">
-                  <div className="flex justify-center">
-                    <div id={`qr-${mesaNumero}`} className="p-4 bg-white rounded-lg">
-                      {error ? (
-                        <div className="w-[150px] h-[150px] flex items-center justify-center text-red-500 text-xs">
-                          Erro ao gerar QR Code
-                        </div>
-                      ) : dataUrl ? (
-                        <img
-                          src={dataUrl}
-                          alt={`QR Code Mesa ${mesaNumero}`}
-                          className="w-[150px] h-[150px]"
-                        />
-                      ) : (
-                        <div className="w-[150px] h-[150px] flex items-center justify-center text-gray-400">
-                          Gerando QR Code...
-                        </div>
-                      )}
-                    </div>
+                <CardContent className="text-center space-y-4">
+                  {/* QR Code */}
+                  <div id={`qr-${mesaNumero}`} className="flex justify-center">
+                    {error ? (
+                      <div className="text-red-500 text-sm">
+                        Erro: {error}
+                      </div>
+                    ) : dataUrl ? (
+                      <img 
+                        src={dataUrl} 
+                        alt={`QR Code Mesa ${mesaNumero}`}
+                        className="w-32 h-32 border rounded-lg"
+                      />
+                    ) : (
+                      <div className="w-32 h-32 border rounded-lg flex items-center justify-center text-gray-400">
+                        Gerando...
+                      </div>
+                    )}
                   </div>
-                  
-                  <div className="text-center space-y-2">
-                    <p className="text-sm text-muted-foreground">
-                      Cliente escaneia e faz pedido
-                    </p>
-                    <div className="flex gap-2 justify-center">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => downloadQRCode(mesaNumero)}
-                        disabled={!dataUrl}
-                      >
-                        <Download className="w-4 h-4 mr-2" />
-                        Baixar
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => shareQRCode(mesaNumero)}
-                        disabled={!dataUrl}
-                      >
-                        <Share2 className="w-4 h-4 mr-2" />
-                        Compartilhar
-                      </Button>
-                    </div>
+
+                  {/* URL do QR Code */}
+                  <div className="text-xs text-gray-600 break-all">
+                    <strong>URL:</strong> {qrUrl}
+                  </div>
+
+                  {/* Botões de Ação */}
+                  <div className="flex gap-2 justify-center">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => downloadQRCode(mesaNumero)}
+                      disabled={!dataUrl}
+                    >
+                      <Download className="w-4 h-4 mr-1" />
+                      Baixar
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => shareQRCode(mesaNumero)}
+                    >
+                      <Share2 className="w-4 h-4 mr-1" />
+                      Compartilhar
+                    </Button>
+                  </div>
+
+                  {/* Teste de Link */}
+                  <div className="pt-2">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => window.open(qrUrl, '_blank')}
+                      className="w-full"
+                    >
+                      <Smartphone className="w-4 h-4 mr-1" />
+                      Testar Pedido
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
             );
           })}
-        </div>
-
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex items-start gap-3">
-            <Smartphone className="w-5 h-5 text-blue-600 mt-0.5" />
-            <div className="space-y-2">
-              <h3 className="font-medium text-blue-900">Como Funciona</h3>
-              <ul className="text-sm text-blue-800 space-y-1">
-                <li>• Cliente escaneia o QR Code da mesa</li>
-                <li>• Acessa o cardápio digital no celular</li>
-                <li>• Faz o pedido diretamente</li>
-                <li>• Pedido aparece automaticamente na comanda</li>
-                <li>• Atendente recebe notificação</li>
-              </ul>
-            </div>
-          </div>
         </div>
       </div>
     </AppLayout>

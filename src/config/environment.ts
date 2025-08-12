@@ -10,16 +10,17 @@ export interface EnvironmentConfig {
 const isPublic = window.location.hostname !== 'localhost' && 
                  !window.location.hostname.startsWith('192.168.') &&
                  !window.location.hostname.startsWith('10.') &&
-                 !window.location.hostname.startsWith('172.');
+                 !window.location.hostname.startsWith('172.') &&
+                 !window.location.hostname.includes('localhost');
 
 // Configuração baseada no ambiente
 export const environmentConfig: EnvironmentConfig = {
   isPublic,
   apiUrl: isPublic 
-    ? 'https://adriana-bebidas-pos.vercel.app/api' 
+    ? 'https://adriana-bebidas-q28y26vpf-omenez444s-projects.vercel.app/api' 
     : `http://${window.location.hostname}:3000/api`,
   qrCodeBaseUrl: isPublic 
-    ? 'https://adriana-bebidas-pos.vercel.app/pedir' 
+    ? 'https://adriana-bebidas-q28y26vpf-omenez444s-projects.vercel.app/pedir' 
     : `http://${window.location.hostname}:3000/pedir`,
   environment: isPublic ? 'public' : 'local'
 };
